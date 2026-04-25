@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.2.0 — 2026-04-25 (later — input-side casing + v0.2.0 priority bugs)
+
+### BREAKING
+
+Input field keys migrated from `camelCase` to `snake_case` to match the response convention (v0.1.1). **Existing user Zaps / workflows that referenced the old field keys via expressions will break and need re-mapping.** Acceptable trade-off given near-zero installed user base.
+
+| Operation | Old field name | New field name |
+|-----------|----------------|----------------|
+| `consignment` (item collection) | `grossWeight` | `gross_weight` |
+| `dutyCalculator` | `commodityCode` | `commodity_code` |
+| `dutyCalculator` | `originCountry` | `origin_country` |
+| `dutyCalculator` | `customsValue` | `customs_value` |
+| `uldLookup` | `uldType` | `uld_type` |
+| `containerLookup` | `containerType` | `container_type` |
+| `vehicleLookup` | `vehicleCategory` | `vehicle_category` |
+| `convert` (B019) | `from` | `from_unit` |
+| `convert` (B019) | `to` | `to_unit` |
+
+9 input keys renamed. The other operations (`cbm`, `ldm`, `chargeableWeight`, `pallet`, `adrLookup`, `adrLqCheck`, `adrExemption`, `hsLookup`, `incotermsLookup`, `airlineLookup`, `unlocodeLookup`, `healthPing`, `toolsList`) already used `snake_case` or single-word input keys in v0.1.x — unchanged.
+
+### Closed v0.1.1-deferred bugs
+
+- **B009** — `un_number` already snake_case in v0.1.0 / v0.1.1 (`adrLqCheck` items collection). The dogfood originally proposed `un_number → unNumber` for cross-action consistency with consignment camelCase fields; the v0.2.0 site-wide direction is the opposite (consignment fields renamed to snake_case in this release), so `un_number` stays. No code change needed for B009 — closed by the broader migration making cross-action consistency hold automatically.
+- **B019** — `from` / `to` → `from_unit` / `to_unit` on the Convert Units operation. Choice rationale per the spec's decision rule: rest of the operation's inputs are now `snake_case` post-Step 2A, so the snake_case form `from_unit` / `to_unit` matches. The `routing.send.property` continues to send `?from=` / `?to=` as the API query-param names — no API change.
+- **B025** — 17 per-line `eslint-disable-next-line` directives added in v0.1.1 (for SI unit symbols + multi-item compound modifier) replaced with **two file-scoped rule overrides** in `eslint.config.mjs`. The two relevant rules (`n8n-nodes-base/node-param-display-name-miscased` and `n8n-nodes-base/node-param-operation-option-action-miscased`) declare `schema: []` in their source — they have no config options to allow exceptions — so file-scope disable was the only practical mechanism. Cleaner than scattering directives. The rules remain active for any other `.ts` file (none currently in this package).
+
+### Closed but with caveat
+
+- **B024 (declarative output schemas for type-hinting)** — n8n v3+ has no static "outputs schema" field on operations beyond the connection-type `outputs: [NodeConnectionTypes.Main]` already declared at the node level. Type-aware suggestions in n8n's expression editor come from runtime sample data captured after a workflow's first execution. There is no architectural slot for declarative output schemas at the operation level. **Deferred until n8n adds such support upstream.** Operation descriptions remain accurate; the website's snake_case API + `usableAsTool: true` already give downstream LLMs visibility into the response shape via runtime introspection.
+
+### Wire-compatibility notes
+
+The website's REST API is in a polyglot deprecation window — every modified endpoint accepts both `camelCase` and `snake_case` on input. As of this v0.2.0 release:
+
+- `/api/duty` — node sends `commodity_code` / `origin_country` / `customs_value` directly (the route handler accepts both, snake_case is canonical).
+- `/api/consignment` — the website's input parser only recognises `camelCase` aliases on item-level fields (`grossWeight`, `palletType`, etc.); the node's `consignment` routing.body now contains a `.map(i => ({ ..., grossWeight: i.gross_weight }))` expression to remap snake_case n8n field names → camelCase wire on item-level fields. Mode and totals are top-level snake-clean. The remap can come out once the website's input parser adds snake_case aliases.
+- `/api/uld`, `/api/containers`, `/api/vehicles` — `uld_type` / `container_type` / `vehicle_category` are n8n field names; `routing.send.property` still maps to API params `type` / `type` / `category` respectively. No wire change.
+- `/api/convert` — `from_unit` / `to_unit` are n8n field names; `routing.send.property` still maps to API params `from` / `to`. No wire change.
+
+### Lint hygiene
+
+- `eslint.config.mjs` extended with file-scope rule overrides for `FreightUtils.node.ts` (see B025 above).
+- 17 per-line directives removed from `nodes/FreightUtils/FreightUtils.node.ts`.
+
+### Verified
+
+- `npm run build` clean (n8n-node build + tsc).
+- `npm run lint` clean (zero per-line disables; rule overrides honoured).
+- Source-only verification of input + output keys against the canonical snake_case convention. Live n8n boot is optional for a patch release per the project's dev-environment recipe; the website-side smoke test (33/33) plus declarative routing means all routes flow through correctly.
+
 ## 0.1.1 — 2026-04-25
 
 Closes 10 of the 27 bugs surfaced by the v0.1.0 dogfood (`dogfood/n8n-v0.1.0-bug-list.md`); the remaining 17 are deferred to v0.2.0 with one-line reasons below. Severity breakdown of closed: 0 Critical, 2 Major, 3 Minor, 5 Cosmetic.

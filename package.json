@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-freightutils",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"description": "n8n community node for FreightUtils — free freight calculators, ADR dangerous goods, HS codes, UK duty, UN/LOCODE, and more.",
 	"license": "MIT",
 	"homepage": "https://www.freightutils.com",

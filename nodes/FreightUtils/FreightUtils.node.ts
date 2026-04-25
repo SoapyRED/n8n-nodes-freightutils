@@ -87,7 +87,6 @@ const freightOpsOperations: INodeProperties = {
 		{
 			name: 'Calculate Consignment',
 			value: 'consignment',
-			// eslint-disable-next-line n8n-nodes-base/node-param-operation-option-action-miscased -- compound modifier hyphenation is intentional (multi-item)
 			action: 'Calculate a multi-item consignment',
 			description: 'Totals (CBM, weight, LDM, chargeable) across mixed items',
 			routing: {
@@ -96,7 +95,9 @@ const freightOpsOperations: INodeProperties = {
 					url: '/consignment',
 					body: {
 						mode: '={{$parameter.mode}}',
-						items: '={{$parameter.items.itemValues}}',
+						// /api/consignment input parser only accepts camelCase aliases on items.
+							// Map snake_case (n8n) -> camelCase (wire) until the website parser adds aliases.
+							items: '={{$parameter.items.itemValues.map(i => ({ length: i.length, width: i.width, height: i.height, quantity: i.quantity, grossWeight: i.gross_weight }))}}',
 					},
 				},
 			},
@@ -106,7 +107,6 @@ const freightOpsOperations: INodeProperties = {
 
 const dimensionFields: INodeProperties[] = [
 	{
-		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 		displayName: 'Length (cm)',
 		name: 'l',
 		type: 'number',
@@ -116,7 +116,6 @@ const dimensionFields: INodeProperties[] = [
 		routing: { send: { property: 'l', type: 'query' } },
 	},
 	{
-		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 		displayName: 'Width (cm)',
 		name: 'w',
 		type: 'number',
@@ -126,7 +125,6 @@ const dimensionFields: INodeProperties[] = [
 		routing: { send: { property: 'w', type: 'query' } },
 	},
 	{
-		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 		displayName: 'Height (cm)',
 		name: 'h',
 		type: 'number',
@@ -136,7 +134,6 @@ const dimensionFields: INodeProperties[] = [
 		routing: { send: { property: 'h', type: 'query' } },
 	},
 	{
-		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 		displayName: 'Gross Weight (kg)',
 		name: 'gw',
 		type: 'number',
@@ -176,7 +173,6 @@ const ldmFields: INodeProperties[] = [
 
 const palletFields: INodeProperties[] = [
 	{
-		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 		displayName: 'Pallet Length (cm)',
 		name: 'pl',
 		type: 'number',
@@ -186,7 +182,6 @@ const palletFields: INodeProperties[] = [
 		routing: { send: { property: 'pl', type: 'query' } },
 	},
 	{
-		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 		displayName: 'Pallet Width (cm)',
 		name: 'pw',
 		type: 'number',
@@ -196,7 +191,6 @@ const palletFields: INodeProperties[] = [
 		routing: { send: { property: 'pw', type: 'query' } },
 	},
 	{
-		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 		displayName: 'Pallet Max Height (cm)',
 		name: 'pmh',
 		type: 'number',
@@ -206,7 +200,6 @@ const palletFields: INodeProperties[] = [
 		routing: { send: { property: 'pmh', type: 'query' } },
 	},
 	{
-		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 		displayName: 'Box Length (cm)',
 		name: 'bl',
 		type: 'number',
@@ -216,7 +209,6 @@ const palletFields: INodeProperties[] = [
 		routing: { send: { property: 'bl', type: 'query' } },
 	},
 	{
-		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 		displayName: 'Box Width (cm)',
 		name: 'bw',
 		type: 'number',
@@ -226,7 +218,6 @@ const palletFields: INodeProperties[] = [
 		routing: { send: { property: 'bw', type: 'query' } },
 	},
 	{
-		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 		displayName: 'Box Height (cm)',
 		name: 'bh',
 		type: 'number',
@@ -249,7 +240,7 @@ const convertFields: INodeProperties[] = [
 	},
 	{
 		displayName: 'From Unit',
-		name: 'from',
+		name: 'from_unit',
 		type: 'string',
 		required: true,
 		default: 'kg',
@@ -260,7 +251,7 @@ const convertFields: INodeProperties[] = [
 	},
 	{
 		displayName: 'To Unit',
-		name: 'to',
+		name: 'to_unit',
 		type: 'string',
 		required: true,
 		default: 'lbs',
@@ -298,21 +289,18 @@ const consignmentFields: INodeProperties[] = [
 				name: 'itemValues',
 				values: [
 					{
-						// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 						displayName: 'Gross Weight (kg)',
-						name: 'grossWeight',
+						name: 'gross_weight',
 						type: 'number',
 						default: 25
 					},
 					{
-						// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 						displayName: 'Height (cm)',
 						name: 'height',
 						type: 'number',
 						default: 30
 					},
 					{
-						// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 						displayName: 'Length (cm)',
 						name: 'length',
 						type: 'number',
@@ -325,7 +313,6 @@ const consignmentFields: INodeProperties[] = [
 						default: 1
 					},
 					{
-						// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 						displayName: 'Width (cm)',
 						name: 'width',
 						type: 'number',
@@ -392,7 +379,6 @@ const dangerousGoodsFields: INodeProperties[] = [
 		routing: { send: { property: 'un', type: 'query' } },
 	},
 	{
-		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 		displayName: 'Quantity (kg or L)',
 		name: 'qty',
 		type: 'number',
@@ -436,7 +422,6 @@ const dangerousGoodsFields: INodeProperties[] = [
 						default: 'L',
 						options: [
 							{ name: 'Litres (L)', value: 'L' },
-							// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
 							{ name: 'Kilograms (kg)', value: 'kg' },
 						],
 					},
@@ -480,9 +465,9 @@ const customsTradeOperations: INodeProperties = {
 					method: 'POST',
 					url: '/duty',
 					body: {
-						commodityCode: '={{$parameter.commodityCode}}',
-						originCountry: '={{$parameter.originCountry}}',
-						customsValue: '={{$parameter.customsValue}}',
+						commodity_code: '={{$parameter.commodity_code}}',
+						origin_country: '={{$parameter.origin_country}}',
+						customs_value: '={{$parameter.customs_value}}',
 					},
 				},
 			},
@@ -526,7 +511,7 @@ const customsTradeFields: INodeProperties[] = [
 	},
 	{
 		displayName: 'Commodity Code',
-		name: 'commodityCode',
+		name: 'commodity_code',
 		type: 'string',
 		required: true,
 		default: '0901110000',
@@ -535,7 +520,7 @@ const customsTradeFields: INodeProperties[] = [
 	},
 	{
 		displayName: 'Origin Country (ISO Alpha-2)',
-		name: 'originCountry',
+		name: 'origin_country',
 		type: 'string',
 		required: true,
 		default: 'BR',
@@ -544,7 +529,7 @@ const customsTradeFields: INodeProperties[] = [
 	},
 	{
 		displayName: 'Customs Value (GBP)',
-		name: 'customsValue',
+		name: 'customs_value',
 		type: 'number',
 		required: true,
 		default: 5000,
@@ -638,7 +623,7 @@ const referenceDataFields: INodeProperties[] = [
 	},
 	{
 		displayName: 'ULD Type',
-		name: 'uldType',
+		name: 'uld_type',
 		type: 'string',
 		required: true,
 		default: 'AKE',
@@ -648,7 +633,7 @@ const referenceDataFields: INodeProperties[] = [
 	},
 	{
 		displayName: 'Container Type',
-		name: 'containerType',
+		name: 'container_type',
 		type: 'string',
 		required: true,
 		default: '40ft-high-cube',
@@ -658,7 +643,7 @@ const referenceDataFields: INodeProperties[] = [
 	},
 	{
 		displayName: 'Category',
-		name: 'vehicleCategory',
+		name: 'vehicle_category',
 		type: 'options',
 		required: true,
 		default: 'van',
