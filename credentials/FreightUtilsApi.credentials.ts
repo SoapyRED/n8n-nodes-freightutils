@@ -48,7 +48,7 @@ export class FreightUtilsApi implements ICredentialType {
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{$credentials.baseUrl}}',
-			url: '/health',
+			url: '/auth/whoami',
 			method: 'GET',
 		},
 	};

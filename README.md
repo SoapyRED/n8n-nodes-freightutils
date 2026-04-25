@@ -1,5 +1,10 @@
 # n8n-nodes-freightutils
 
+[![npm version](https://img.shields.io/npm/v/n8n-nodes-freightutils)](https://www.npmjs.com/package/n8n-nodes-freightutils)
+[![npm downloads (total)](https://img.shields.io/npm/dt/n8n-nodes-freightutils)](https://www.npmjs.com/package/n8n-nodes-freightutils)
+[![npm downloads (month)](https://img.shields.io/npm/dm/n8n-nodes-freightutils)](https://www.npmjs.com/package/n8n-nodes-freightutils)
+[![License: MIT](https://img.shields.io/npm/l/n8n-nodes-freightutils)](https://opensource.org/licenses/MIT)
+
 n8n community node for [FreightUtils](https://www.freightutils.com) — free freight calculators, ADR 2025 dangerous-goods lookup, HS 2022 codes, UK import duty, UN/LOCODE, and more. One node, 19 operations, four resources.
 
 ## Install

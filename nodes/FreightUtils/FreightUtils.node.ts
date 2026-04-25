@@ -87,7 +87,8 @@ const freightOpsOperations: INodeProperties = {
 		{
 			name: 'Calculate Consignment',
 			value: 'consignment',
-			action: 'Calculate a multi item consignment',
+			// eslint-disable-next-line n8n-nodes-base/node-param-operation-option-action-miscased -- compound modifier hyphenation is intentional (multi-item)
+			action: 'Calculate a multi-item consignment',
 			description: 'Totals (CBM, weight, LDM, chargeable) across mixed items',
 			routing: {
 				request: {
@@ -105,7 +106,8 @@ const freightOpsOperations: INodeProperties = {
 
 const dimensionFields: INodeProperties[] = [
 	{
-		displayName: 'Length (Cm)',
+		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+		displayName: 'Length (cm)',
 		name: 'l',
 		type: 'number',
 		required: true,
@@ -114,7 +116,8 @@ const dimensionFields: INodeProperties[] = [
 		routing: { send: { property: 'l', type: 'query' } },
 	},
 	{
-		displayName: 'Width (Cm)',
+		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+		displayName: 'Width (cm)',
 		name: 'w',
 		type: 'number',
 		required: true,
@@ -123,7 +126,8 @@ const dimensionFields: INodeProperties[] = [
 		routing: { send: { property: 'w', type: 'query' } },
 	},
 	{
-		displayName: 'Height (Cm)',
+		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+		displayName: 'Height (cm)',
 		name: 'h',
 		type: 'number',
 		required: true,
@@ -132,7 +136,8 @@ const dimensionFields: INodeProperties[] = [
 		routing: { send: { property: 'h', type: 'query' } },
 	},
 	{
-		displayName: 'Gross Weight (Kg)',
+		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+		displayName: 'Gross Weight (kg)',
 		name: 'gw',
 		type: 'number',
 		required: true,
@@ -171,7 +176,8 @@ const ldmFields: INodeProperties[] = [
 
 const palletFields: INodeProperties[] = [
 	{
-		displayName: 'Pallet Length (Cm)',
+		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+		displayName: 'Pallet Length (cm)',
 		name: 'pl',
 		type: 'number',
 		required: true,
@@ -180,7 +186,8 @@ const palletFields: INodeProperties[] = [
 		routing: { send: { property: 'pl', type: 'query' } },
 	},
 	{
-		displayName: 'Pallet Width (Cm)',
+		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+		displayName: 'Pallet Width (cm)',
 		name: 'pw',
 		type: 'number',
 		required: true,
@@ -189,7 +196,8 @@ const palletFields: INodeProperties[] = [
 		routing: { send: { property: 'pw', type: 'query' } },
 	},
 	{
-		displayName: 'Pallet Max Height (Cm)',
+		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+		displayName: 'Pallet Max Height (cm)',
 		name: 'pmh',
 		type: 'number',
 		required: true,
@@ -198,7 +206,8 @@ const palletFields: INodeProperties[] = [
 		routing: { send: { property: 'pmh', type: 'query' } },
 	},
 	{
-		displayName: 'Box Length (Cm)',
+		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+		displayName: 'Box Length (cm)',
 		name: 'bl',
 		type: 'number',
 		required: true,
@@ -207,7 +216,8 @@ const palletFields: INodeProperties[] = [
 		routing: { send: { property: 'bl', type: 'query' } },
 	},
 	{
-		displayName: 'Box Width (Cm)',
+		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+		displayName: 'Box Width (cm)',
 		name: 'bw',
 		type: 'number',
 		required: true,
@@ -216,7 +226,8 @@ const palletFields: INodeProperties[] = [
 		routing: { send: { property: 'bw', type: 'query' } },
 	},
 	{
-		displayName: 'Box Height (Cm)',
+		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+		displayName: 'Box Height (cm)',
 		name: 'bh',
 		type: 'number',
 		required: true,
@@ -274,7 +285,7 @@ const consignmentFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['freightOps'], operation: ['consignment'] } },
 	},
 	{
-		displayName: 'Items',
+		displayName: 'Consignment Items',
 		name: 'items',
 		type: 'fixedCollection',
 		typeOptions: { multipleValues: true },
@@ -287,19 +298,22 @@ const consignmentFields: INodeProperties[] = [
 				name: 'itemValues',
 				values: [
 					{
-						displayName: 'Gross Weight (Kg)',
+						// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+						displayName: 'Gross Weight (kg)',
 						name: 'grossWeight',
 						type: 'number',
 						default: 25
 					},
 					{
-						displayName: 'Height (Cm)',
+						// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+						displayName: 'Height (cm)',
 						name: 'height',
 						type: 'number',
 						default: 30
 					},
 					{
-						displayName: 'Length (Cm)',
+						// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+						displayName: 'Length (cm)',
 						name: 'length',
 						type: 'number',
 						default: 60
@@ -311,7 +325,8 @@ const consignmentFields: INodeProperties[] = [
 						default: 1
 					},
 					{
-						displayName: 'Width (Cm)',
+						// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+						displayName: 'Width (cm)',
 						name: 'width',
 						type: 'number',
 						default: 40
@@ -377,7 +392,8 @@ const dangerousGoodsFields: INodeProperties[] = [
 		routing: { send: { property: 'un', type: 'query' } },
 	},
 	{
-		displayName: 'Quantity (Kg Or L)',
+		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+		displayName: 'Quantity (kg or L)',
 		name: 'qty',
 		type: 'number',
 		required: true,
@@ -399,7 +415,7 @@ const dangerousGoodsFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['dangerousGoods'], operation: ['adrLqCheck'] } },
 	},
 	{
-		displayName: 'Items',
+		displayName: 'Dangerous Goods Items',
 		name: 'items',
 		type: 'fixedCollection',
 		typeOptions: { multipleValues: true },
@@ -420,7 +436,8 @@ const dangerousGoodsFields: INodeProperties[] = [
 						default: 'L',
 						options: [
 							{ name: 'Litres (L)', value: 'L' },
-							{ name: 'Kilograms (Kg)', value: 'kg' },
+							// eslint-disable-next-line n8n-nodes-base/node-param-display-name-miscased -- SI unit symbols are lowercase (cm, kg, L) per ISO 80000
+							{ name: 'Kilograms (kg)', value: 'kg' },
 						],
 					},
 				],
@@ -475,12 +492,12 @@ const customsTradeOperations: INodeProperties = {
 
 const customsTradeFields: INodeProperties[] = [
 	{
-		displayName: 'Query',
+		displayName: 'HS Code or Keyword',
 		name: 'q',
 		type: 'string',
 		required: true,
 		default: 'coffee',
-		description: 'Free-text search — product name, material, or partial code',
+		description: 'Enter a numeric HS code (e.g. 8517) or a keyword (e.g. telephones). Both patterns work.',
 		displayOptions: { show: { resource: ['customsTrade'], operation: ['hsLookup'] } },
 		routing: { send: { property: 'q', type: 'query' } },
 	},
@@ -605,7 +622,7 @@ const referenceDataFields: INodeProperties[] = [
 		type: 'string',
 		required: true,
 		default: '176',
-		description: '3-digit IATA AWB prefix, e.g. 176 for Emirates SkyCargo',
+		description: '3-digit IATA AWB prefix (numeric only, e.g. 176 for Emirates SkyCargo). An empty results array means no airline holds that prefix.',
 		displayOptions: { show: { resource: ['referenceData'], operation: ['airlineLookup'] } },
 		routing: { send: { property: 'prefix', type: 'query' } },
 	},
