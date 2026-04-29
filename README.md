@@ -25,6 +25,17 @@ npm install n8n-nodes-freightutils
 
 Restart n8n. The node appears as **FreightUtils** under the **Transform** group.
 
+## Releasing (maintainers only)
+
+This package uses `release-it` (driven by `n8n-node release`) for the publish flow. **Do NOT use `npm publish` directly** — there is intentionally no `prepublishOnly` hook to short-circuit the registry publish, but `release-it` is the path that handles the version bump, git tag, GitHub release, and `npm publish` together in the right order.
+
+```bash
+npm run release        # interactive: pick patch / minor / major
+npm run release minor  # non-interactive
+```
+
+Why no `prepublishOnly`: an earlier scripted `prepublishOnly` ran `n8n-node prerelease` which itself shells into `release-it`; chaining release-it through `npm publish` failed deterministically when a same-version git tag already existed (a common state after a manual / aborted publish), with EPERM-flavoured noise on Windows + OneDrive trees that had nothing to do with the actual problem. Removing the hook means `npm publish` works as a standard fallback if the release script ever needs an end-run.
+
 ## Credentials
 
 1. Generate a free API key at <https://www.freightutils.com/api-docs> (you get **100 requests/day** on the free tier).
