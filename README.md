@@ -109,16 +109,16 @@ Trigger: row added to a "SKU Imports" spreadsheet.
 4. **FreightUtils** node 2 → Resource `Customs & Trade`, Operation `UK Duty Calculator`, map `Commodity Code`, `Origin Country`, `Customs Value (GBP)`.
 5. Write `duty_rate_percent` and `total_duty_gbp` back to the spreadsheet.
 
-## Links
+## Other ways to use FreightUtils
 
-- FreightUtils: <https://www.freightutils.com>
-- API docs: <https://www.freightutils.com/api-docs>
-- Pricing: <https://www.freightutils.com/pricing>
-- Changelog: <https://www.freightutils.com/changelog>
-- Status: <https://www.freightutils.com/status>
-- This repo: <https://github.com/SoapyRED/n8n-nodes-freightutils>
-- npm package: <https://www.npmjs.com/package/n8n-nodes-freightutils>
-- Issues: <https://github.com/SoapyRED/n8n-nodes-freightutils/issues>
+FreightUtils ships across multiple distribution surfaces. Pick the one that fits how you work:
+
+- **Website** — interactive tools at [freightutils.com](https://www.freightutils.com)
+- **REST API** — 19 endpoints, free tier (100/day) and Pro tier (50K/month, £19/mo). [API docs](https://www.freightutils.com/api-docs)
+- **MCP server** — for LLM agents and AI tooling. [npm: freightutils-mcp](https://www.npmjs.com/package/freightutils-mcp) · [MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=freightutils)
+- **n8n custom node** — for workflow automation. [npm: n8n-nodes-freightutils](https://www.npmjs.com/package/n8n-nodes-freightutils)
+
+Same data, same compliance reference set (ADR 2025, HS 2022, IATA-regulated airline prefixes), every surface kept in sync.
 
 ## Licence
 
