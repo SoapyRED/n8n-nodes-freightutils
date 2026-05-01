@@ -67,9 +67,11 @@ See [`schema.md`](./schema.md) for the full output contract. Top-level shape:
 }
 ```
 
+Items with an unknown / failed UN lookup don't halt the workflow — they appear in `validation.items_with_errors` (with `index` + `reasons`) and as `{ input, adr_data: null, lookup_failed: true, error_reason }` in the items array. Aggregate calculations exclude failed items. See `schema.md` → "Graceful degradation on unknown UN numbers" for the full contract.
+
 ## How to call it from a parent workflow
 
-**Prerequisite:** install [`n8n-nodes-freightutils`](https://www.npmjs.com/package/n8n-nodes-freightutils) **>= 0.3.0** (Settings → Community Nodes → Install). The workflow uses three native operations from this node: `adrLookup`, `adrLqCheck`, and `adrExemptionConsignment` (the last one was added in v0.3.0).
+**Prerequisite:** install [`n8n-nodes-freightutils`](https://www.npmjs.com/package/n8n-nodes-freightutils) **>= 0.3.1** (Settings → Community Nodes → Install). The workflow uses three native operations from this node: `adrLookup`, `adrLqCheck`, and `adrExemptionConsignment` (the last one was added in v0.3.0). v0.3.1 fixed a regression in dynamic-array handling — the consignment ops in this workflow are configured with `Items Source: JSON Expression` so they accept the upstream array directly. Older v0.3.0 won't parse the workflow's `itemsSource: 'json'` parameter.
 
 1. Import `workflow.json` into your n8n instance (Workflows → Import from File).
 2. Create a **FreightUtils API** credential (single credential, used by all three FreightUtils nodes in the workflow):

@@ -59,7 +59,7 @@ The workflow computes `total_quantity = quantity_per_package × package_count` p
   },
   "items": [
     {
-      "input": { "...echo of input item" },
+      "input": { "...echo of input item, enriched with proper_shipping_name, class, packing_group from ADR Lookup" },
       "adr_data": {
         "un_number": "1263",
         "proper_shipping_name": "PAINT...",
@@ -94,6 +94,30 @@ The workflow computes `total_quantity = quantity_per_package × package_count` p
   }
 }
 ```
+
+### Graceful degradation on unknown UN numbers
+
+The workflow runs `ADR Lookup` with `onError: 'continueRegularOutput'`. Items whose UN number doesn't exist in the ADR 2025 dataset (or whose lookup otherwise fails) flow through to the rest of the workflow with a `lookup_failed: true` marker and an `error_reason` string instead of full `adr_data`. Downstream:
+
+- **LQ Check** and **1.1.3.6 Exemption** filter out failed-lookup items before posting to FreightUtils — the consignment-level math runs only on the valid items.
+- **Compose Output** emits the failed item with a minimal record:
+
+```json
+{
+  "input": { "un_number": "9999", "quantity_per_package": 100, "...": "..." },
+  "adr_data": null,
+  "lq_eq_check": null,
+  "transport_category_points": null,
+  "lookup_failed": true,
+  "error_reason": "UN 9999 could not be looked up in ADR 2025"
+}
+```
+
+- **`validation.items_with_errors`** is always present in the output (may be empty `[]`). For each failed item it contains `{ index, reasons: [error_reason] }`.
+- **`validation.all_items_recognized`** is `false` when any item failed.
+- **`aggregate.total_transport_category_points`** and **`aggregate.exemption_113_6_status`** reflect only the valid items — failed items contribute zero to the consignment math, which is the safe default for a compliance check (do not over-claim exemption).
+
+This is intentional. Consumers of this sub-workflow should always read `validation.items_with_errors` before acting on the aggregate fields, and surface the `error_reason` to the operator so they can correct the UN number and re-run.
 
 ### `exemption_113_6_status` values
 - `exempt` — total points ≤ 1000, no Category 0 substances, no per-substance overage

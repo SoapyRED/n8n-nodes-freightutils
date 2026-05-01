@@ -205,14 +205,14 @@ The workflow's `Compose Output` Code node maps:
 - `warnings` → `aggregate.notes`
 - `has_category_zero` → forces `exemption_113_6_status` to `mixed_categories_check_required`
 
-## Workflow now uses the native FreightUtils node (v0.3.0+)
+## Workflow now uses the native FreightUtils node (v0.3.1+)
 
-This template originally used **HTTP Request** nodes for `/api/adr/lq-check` and `/api/adr-calculator` because `n8n-nodes-freightutils@0.2.0` only exposed the single-substance form of `adrExemption`. The workflow has since been updated (alongside `n8n-nodes-freightutils@0.3.0` published 2026-05-01) to use three native node operations:
+This template originally used **HTTP Request** nodes for `/api/adr/lq-check` and `/api/adr-calculator` because `n8n-nodes-freightutils@0.2.0` only exposed the single-substance form of `adrExemption`. The workflow then moved to native node operations alongside `n8n-nodes-freightutils@0.3.0`. **v0.3.1 (2026-05-01) is now the minimum version** — see [docs/audits/2026-05-01-n8n-template-e2e.md](../../docs/audits/2026-05-01-n8n-template-e2e.md) for the live-execution audit that found and fixed the v0.3.0 dynamic-array regression. The three native operations used:
 
-- **ADR Lookup** — `dangerousGoods → adrLookup` (per item, in the loop)
-- **ADR LQ Check** — `dangerousGoods → adrLqCheck` (consignment-level, multi-item; existed in v0.2.0)
-- **ADR 1.1.3.6 Exemption** — `dangerousGoods → adrExemptionConsignment` (consignment-level, multi-item; **new in v0.3.0**)
+- **ADR Lookup** — `dangerousGoods → adrLookup` (per item, in the loop, with `onError: 'continueRegularOutput'` so unknown UNs surface in `validation.items_with_errors` instead of halting)
+- **ADR LQ Check** — `dangerousGoods → adrLqCheck` with `Items Source: JSON Expression` (consignment-level, multi-item; existed in v0.2.0)
+- **ADR 1.1.3.6 Exemption** — `dangerousGoods → adrExemptionConsignment` with `Items Source: JSON Expression` (consignment-level, multi-item; **new in v0.3.0**, dynamic-array fix in v0.3.1)
 
 The wire shape captured in this document (input bodies + responses) is unchanged — only the workflow's invocation pattern moved from raw HTTP requests to the n8n custom node. Output is byte-identical to the prior HTTP-Request-based version, verified post-swap by replaying the live API responses through the unchanged Compose Output Code node.
 
-**Parity audit at v0.3.0 release:** the same multi-item exemption gap was found in the Zapier and Make integrations and patched in the same release window (Zapier `adrExemptionConsignment` + `adrLqCheckConsignment` actions; Make modules of the same names). The MCP server already supported the multi-item form via `adr_exemption_calculator` and `adr_lq_eq_check` tools.
+**Parity audit at v0.3.0 release:** the same multi-item exemption gap was found in the Zapier and Make integrations and patched in the same release window (Zapier `adrExemptionConsignment` + `adrLqCheckConsignment` actions; Make modules of the same names). The MCP server already supported the multi-item form via `adr_exemption_calculator` and `adr_lq_eq_check` tools. Re-audited at v0.3.1 — Zapier (parallel-list pattern) and Make (`type: array` IML) are not vulnerable to the n8n-fixedCollection bug class, no mirror fix needed.
