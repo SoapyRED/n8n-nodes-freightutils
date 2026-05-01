@@ -67,10 +67,14 @@ See <https://www.freightutils.com/pricing> for Pro access. Every response includ
 
 `Consignment`, `ADR LQ/EQ Check`, and `ADR Exemption Calculator (Consignment)` all take a list of items. You can provide them either way:
 
-- **Literal**: click `Add Item` in the node UI for each item, fill the fields directly. Best for small fixed lists.
-- **Dynamic**: in `Items` → `Item` (or `Dangerous Goods Items`), click the Expression toggle and pass an upstream array — e.g. `={{ $json.items }}` from a Code or Set node that produces `[{un_number, quantity, unit}, ...]`. Best when the consignment shape comes from a webhook, database query, or another workflow.
+- **Literal**: leave **Items Source** at the default `Add Items in List`, then click `Add Item` in the node UI for each item and fill the fields directly. Best for small fixed lists.
+- **Dynamic**: switch **Items Source** to `JSON Expression`, then paste an array (or expression) into the **Items (JSON)** field — e.g. `={{ JSON.stringify($json.items) }}` from a Code or Set node that produces `[{un_number, quantity, unit}, ...]`. Best when the consignment shape comes from a webhook, database query, or another workflow.
 
-Both shapes hit the same API endpoint with the same wire format. (v0.3.0 had a regression where dynamic input was mishandled; fixed in v0.3.1 — see [CHANGELOG](./CHANGELOG.md).)
+Both shapes hit the same API endpoint with the same wire format. (v0.3.0 had a regression where the literal-mode fixedCollection silently mishandled expressions; fixed in v0.3.1 by adding the JSON Expression source — see [CHANGELOG](./CHANGELOG.md).)
+
+## Known limitations
+
+- **n8n core: literal-mode `multipleValues` fixedCollection silently corrupts expression input.** If you set the literal-mode `Items` fixedCollection (or the `Dangerous Goods Items` collection) directly to an expression like `={{ $json.items }}` instead of switching to JSON Expression mode, n8n's `NodeHelpers.getNodeParameters` iterates the expression *string's characters* and feeds the API one default-filled item per character. Always use JSON Expression mode for dynamic input. Linked to upstream n8n issue: https://github.com/n8n-io/n8n/issues/29619
 
 ## Example A — Chargeable weight on an incoming air-freight booking
 

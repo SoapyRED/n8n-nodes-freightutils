@@ -1,6 +1,7 @@
 # n8n template E2E audit — 2026-05-01
 
 Source: live execution against n8n@2.18.5 + n8n-nodes-freightutils@0.3.0
+Upstream issue: https://github.com/n8n-io/n8n/issues/29619
 
 ---
 
