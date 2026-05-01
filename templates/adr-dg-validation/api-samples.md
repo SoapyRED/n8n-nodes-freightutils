@@ -205,8 +205,14 @@ The workflow's `Compose Output` Code node maps:
 - `warnings` → `aggregate.notes`
 - `has_category_zero` → forces `exemption_113_6_status` to `mixed_categories_check_required`
 
-## n8n custom node gap — flagged
+## Workflow now uses the native FreightUtils node (v0.3.0+)
 
-The `n8n-nodes-freightutils@0.2.0` node exposes `adrExemption` only as **GET /api/adr-calculator?un=&qty=** (single substance). The API itself supports POST with `items[]` array (verified in this sprint), but the n8n node doesn't surface a multi-item operation. The workflow uses the **HTTP Request node** instead of the FreightUtils node for the consignment-level exemption call as a workaround.
+This template originally used **HTTP Request** nodes for `/api/adr/lq-check` and `/api/adr-calculator` because `n8n-nodes-freightutils@0.2.0` only exposed the single-substance form of `adrExemption`. The workflow has since been updated (alongside `n8n-nodes-freightutils@0.3.0` published 2026-05-01) to use three native node operations:
 
-**Suggested fix-once-mirror followup** (separate sprint): add `adrExemptionConsignment` operation to `n8n-nodes-freightutils` that POSTs to `/api/adr-calculator` with an items array. Mirror to `freightutils-mcp` npm + Make integration if the same gap exists there.
+- **ADR Lookup** — `dangerousGoods → adrLookup` (per item, in the loop)
+- **ADR LQ Check** — `dangerousGoods → adrLqCheck` (consignment-level, multi-item; existed in v0.2.0)
+- **ADR 1.1.3.6 Exemption** — `dangerousGoods → adrExemptionConsignment` (consignment-level, multi-item; **new in v0.3.0**)
+
+The wire shape captured in this document (input bodies + responses) is unchanged — only the workflow's invocation pattern moved from raw HTTP requests to the n8n custom node. Output is byte-identical to the prior HTTP-Request-based version, verified post-swap by replaying the live API responses through the unchanged Compose Output Code node.
+
+**Parity audit at v0.3.0 release:** the same multi-item exemption gap was found in the Zapier and Make integrations and patched in the same release window (Zapier `adrExemptionConsignment` + `adrLqCheckConsignment` actions; Make modules of the same names). The MCP server already supported the multi-item form via `adr_exemption_calculator` and `adr_lq_eq_check` tools.

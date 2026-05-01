@@ -69,10 +69,12 @@ See [`schema.md`](./schema.md) for the full output contract. Top-level shape:
 
 ## How to call it from a parent workflow
 
+**Prerequisite:** install [`n8n-nodes-freightutils`](https://www.npmjs.com/package/n8n-nodes-freightutils) **>= 0.3.0** (Settings → Community Nodes → Install). The workflow uses three native operations from this node: `adrLookup`, `adrLqCheck`, and `adrExemptionConsignment` (the last one was added in v0.3.0).
+
 1. Import `workflow.json` into your n8n instance (Workflows → Import from File).
-2. Create an **HTTP Header Auth** credential called `FreightUtils API Key`:
-   - Name: `X-API-Key`
-   - Value: your FreightUtils API key (`fu_live_…` from [freightutils.com/api-docs#signup](https://www.freightutils.com/api-docs#signup) or [/pricing](https://www.freightutils.com/pricing))
+2. Create a **FreightUtils API** credential (single credential, used by all three FreightUtils nodes in the workflow):
+   - **API Key:** your FreightUtils API key (`fu_live_…` from [freightutils.com/api-docs#signup](https://www.freightutils.com/api-docs#signup) or [/pricing](https://www.freightutils.com/pricing))
+   - **Base URL:** leave at default (`https://www.freightutils.com/api`)
 3. In your parent workflow, add an **Execute Workflow** node:
    - **Source:** Database
    - **Workflow:** ADR DG Validation (sub-workflow)
