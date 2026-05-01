@@ -106,7 +106,6 @@ const freightOpsOperations: INodeProperties = {
 	noDataExpression: true,
 	displayOptions: { show: { resource: ['freightOps'] } },
 	default: 'cbm',
-	// eslint-disable-next-line n8n-nodes-base/node-param-options-type-unsorted-items
 	options: [
 		{
 			name: 'Calculate CBM',
@@ -352,8 +351,7 @@ const consignmentFields: INodeProperties[] = [
 		name: 'itemsSource',
 		type: 'options',
 		default: 'list',
-		description:
-			'Where to read the items from. Use "Add Items in List" for static items typed in the UI; switch to "JSON Expression" if items come from an upstream node (e.g. ={{ $json.items }})',
+		description: 'Where to read the items from. Use "Add Items in List" for static items typed in the UI; switch to "JSON Expression" if items come from an upstream node (e.g. ={{ $json.items }}).',
 		displayOptions: { show: { resource: ['freightOps'], operation: ['consignment'] } },
 		options: [
 			{
@@ -375,8 +373,7 @@ const consignmentFields: INodeProperties[] = [
 		typeOptions: { rows: 4 },
 		default: '',
 		placeholder: '={{ $json.items }}',
-		description:
-			'Array of items as JSON or an expression resolving to an array. Each item: { length, width, height, quantity, gross_weight }',
+		description: 'Array of items as JSON or an expression resolving to an array. Each item: { length, width, height, quantity, gross_weight }.',
 		displayOptions: {
 			show: { resource: ['freightOps'], operation: ['consignment'], itemsSource: ['json'] },
 		},
@@ -547,8 +544,7 @@ const dangerousGoodsFields: INodeProperties[] = [
 		name: 'itemsSource',
 		type: 'options',
 		default: 'list',
-		description:
-			'Where to read the items from. Use "Add Items in List" for static items typed in the UI; switch to "JSON Expression" if items come from an upstream node (e.g. ={{ $json.items }})',
+		description: 'Where to read the items from. Use "Add Items in List" for static items typed in the UI; switch to "JSON Expression" if items come from an upstream node (e.g. ={{ $json.items }}).',
 		displayOptions: {
 			show: {
 				resource: ['dangerousGoods'],
