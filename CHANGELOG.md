@@ -26,6 +26,10 @@ API surface unchanged. Operation names, parameter names, response shapes — all
 
 `templates/adr-dg-validation/workflow.json` rework (Sprint B follow-up): the workflow can now use the native FU node for both consignment-level operations without falling back to HTTP Request nodes.
 
+### Upstream issue
+
+https://github.com/n8n-io/n8n/issues/29619
+
 ## 0.3.0 — 2026-05-01
 
 ### Added
@@ -41,6 +45,8 @@ The shared `Dangerous Goods Items` fixedCollection field now appears for both `a
 ### Pairs with
 
 `templates/adr-dg-validation/workflow.json` (this repo) — the ADR DG validation sub-workflow that previously used an HTTP Request node for the consignment-level exemption call now uses `adrExemptionConsignment` natively. Requires v0.3.0+.
+
+> **Note:** this version contained a regression in dynamic-array handling for consignment operations, fixed in v0.3.1. See v0.3.1 entry for details.
 
 ## 0.2.0 — 2026-04-25 (later — input-side casing + v0.2.0 priority bugs)
 
