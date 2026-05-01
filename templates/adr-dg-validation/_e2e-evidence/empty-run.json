@@ -1,0 +1,24 @@
+{
+  "label": "empty",
+  "execId": 6,
+  "status": "error",
+  "startedAt": "2026-05-01T12:13:28.186Z",
+  "stoppedAt": "2026-05-01T12:13:28.204Z",
+  "perNode": {
+    "When Executed by Another Workflow": {
+      "status": "success",
+      "ms": 0,
+      "items_out": 1
+    },
+    "Validate Input": {
+      "status": "error",
+      "ms": 11,
+      "items_out": 0
+    }
+  },
+  "error": {
+    "message": "`items` must be a non-empty array [line 23]",
+    "description": null
+  },
+  "finalOutput": null
+}

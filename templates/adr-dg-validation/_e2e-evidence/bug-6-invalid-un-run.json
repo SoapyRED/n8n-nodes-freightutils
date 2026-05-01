@@ -1,0 +1,194 @@
+{
+  "label": "bug-6-invalid-un",
+  "execId": 8,
+  "status": "success",
+  "startedAt": "2026-05-01T12:15:54.192Z",
+  "stoppedAt": "2026-05-01T12:15:54.820Z",
+  "perNode": {
+    "When Executed by Another Workflow": {
+      "status": "success",
+      "ms": 1,
+      "items_out": 1
+    },
+    "Validate Input": {
+      "status": "success",
+      "ms": 8,
+      "items_out": 1
+    },
+    "Split Items": {
+      "status": "success",
+      "ms": 0,
+      "items_out": 3
+    },
+    "ADR Lookup": {
+      "status": "success",
+      "ms": 294,
+      "items_out": 3
+    },
+    "Merge ADR Data Into Item": {
+      "status": "success",
+      "ms": 11,
+      "items_out": 3
+    },
+    "Aggregate Items": {
+      "status": "success",
+      "ms": 1,
+      "items_out": 1
+    },
+    "ADR LQ Check (Consignment)": {
+      "status": "success",
+      "ms": 149,
+      "items_out": 1
+    },
+    "ADR 1.1.3.6 Exemption (Consignment)": {
+      "status": "success",
+      "ms": 141,
+      "items_out": 1
+    },
+    "Compose Output": {
+      "status": "success",
+      "ms": 14,
+      "items_out": 1
+    }
+  },
+  "error": null,
+  "finalOutput": {
+    "consignment": {
+      "booking_reference": "FU-DEMO-SPRINT-C-BUG6",
+      "shipper": "Acme Coatings Ltd, Manchester GB",
+      "consignee": "Bauchemie GmbH, Hamburg DE",
+      "transport_mode": "road",
+      "origin_country": "GB",
+      "destination_country": "DE",
+      "route_notes": "Bug 6 graceful-degradation Sprint C re-validation"
+    },
+    "validation": {
+      "all_items_recognized": false,
+      "items_validated": 3,
+      "items_with_warnings": [
+        {
+          "index": 0,
+          "reasons": [
+            "LQ exceeds_limit: 125 L exceeds the LQ limit of 500 ml per inner packaging"
+          ]
+        },
+        {
+          "index": 2,
+          "reasons": [
+            "LQ exceeds_limit: 1000 L exceeds the LQ limit of 5 L per inner packaging"
+          ]
+        }
+      ],
+      "items_with_errors": [
+        {
+          "index": 1,
+          "reasons": [
+            "UN 9999 could not be looked up in ADR 2025"
+          ]
+        }
+      ]
+    },
+    "items": [
+      {
+        "input": {
+          "un_number": "1263",
+          "proper_shipping_name": "PAINT (including paint, lacquer, enamel, stain, shellac, varnish, polish, liquid filler and liquid lacquer base) or PAINT RELATED MATERIAL (including paint thinning and reducing compound)",
+          "class": "3",
+          "packing_group": "I",
+          "quantity_per_package": 25,
+          "quantity_unit": "L",
+          "package_count": 5,
+          "total_quantity": 125,
+          "packaging_type": "drums",
+          "special_handling": "Valid item"
+        },
+        "adr_data": {
+          "un_number": "1263",
+          "proper_shipping_name": "PAINT (including paint, lacquer, enamel, stain, shellac, varnish, polish, liquid filler and liquid lacquer base) or PAINT RELATED MATERIAL (including paint thinning and reducing compound)",
+          "class": "3",
+          "classification_code": "F1",
+          "packing_group": "I",
+          "labels": "3",
+          "special_provisions": "163 367 650",
+          "limited_quantity": "500 ml",
+          "excepted_quantity": "E3",
+          "transport_category": "1",
+          "tunnel_restriction_code": "(D/E)",
+          "hazard_identification_number": "33",
+          "variant_index": 0
+        },
+        "lq_eq_check": {
+          "qualifies_for_lq": false,
+          "qualifies_for_eq": true,
+          "max_lq": "500 ml",
+          "max_eq": "E3"
+        },
+        "transport_category_points": 6250
+      },
+      {
+        "input": {
+          "un_number": "9999",
+          "quantity_per_package": 100,
+          "quantity_unit": "L",
+          "package_count": 1,
+          "total_quantity": 100,
+          "packaging_type": "drums",
+          "special_handling": "Bogus UN — should not exist"
+        },
+        "adr_data": null,
+        "lq_eq_check": null,
+        "transport_category_points": null,
+        "lookup_failed": true,
+        "error_reason": "UN 9999 could not be looked up in ADR 2025"
+      },
+      {
+        "input": {
+          "un_number": "3082",
+          "proper_shipping_name": "ENVIRONMENTALLY HAZARDOUS SUBSTANCE, LIQUID, N.O.S.",
+          "class": "9",
+          "packing_group": "III",
+          "quantity_per_package": 1000,
+          "quantity_unit": "L",
+          "package_count": 1,
+          "total_quantity": 1000,
+          "packaging_type": "IBC",
+          "special_handling": "Valid item"
+        },
+        "adr_data": {
+          "un_number": "3082",
+          "proper_shipping_name": "ENVIRONMENTALLY HAZARDOUS SUBSTANCE, LIQUID, N.O.S.",
+          "class": "9",
+          "classification_code": "M6",
+          "packing_group": "III",
+          "labels": "9",
+          "special_provisions": "274 335 375 601 650",
+          "limited_quantity": "5 L",
+          "excepted_quantity": "E1",
+          "transport_category": "3",
+          "tunnel_restriction_code": "(-)",
+          "hazard_identification_number": "90",
+          "variant_index": 0
+        },
+        "lq_eq_check": {
+          "qualifies_for_lq": false,
+          "qualifies_for_eq": true,
+          "max_lq": "5 L",
+          "max_eq": "E1"
+        },
+        "transport_category_points": 1000
+      }
+    ],
+    "aggregate": {
+      "total_transport_category_points": 7250,
+      "exemption_113_6_status": "exceeds_threshold",
+      "vehicle_marking_required": true,
+      "tunnel_restrictions": [
+        "(D/E)"
+      ],
+      "driver_adr_certificate_required": true,
+      "notes": [
+        "UN1263 (Category 1): 125 exceeds the 20 kg/L maximum for Transport Category 1"
+      ]
+    }
+  }
+}
