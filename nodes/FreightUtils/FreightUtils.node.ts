@@ -361,8 +361,23 @@ const dangerousGoodsOperations: INodeProperties = {
 			name: 'ADR Exemption Calculator',
 			value: 'adrExemption',
 			action: 'Calculate ADR 1.1.3.6 exemption',
-			description: 'Calculate transport-category points against the 1000-point threshold',
+			description: 'Calculate transport-category points for a single substance against the 1000-point threshold',
 			routing: { request: { method: 'GET', url: '/adr-calculator' } },
+		},
+		{
+			name: 'ADR Exemption Calculator (Consignment)',
+			value: 'adrExemptionConsignment',
+			action: 'Calculate ADR 1.1.3.6 exemption for a multi-item consignment',
+			description: 'Calculate aggregated transport-category points across multiple substances against the 1000-point threshold',
+			routing: {
+				request: {
+					method: 'POST',
+					url: '/adr-calculator',
+					body: {
+						items: '={{$parameter.items.itemValues.map(i => ({un_number: i.un_number, quantity: i.quantity}))}}',
+					},
+				},
+			},
 		},
 	],
 };
@@ -407,7 +422,12 @@ const dangerousGoodsFields: INodeProperties[] = [
 		typeOptions: { multipleValues: true },
 		default: {},
 		placeholder: 'Add Item',
-		displayOptions: { show: { resource: ['dangerousGoods'], operation: ['adrLqCheck'] } },
+		displayOptions: {
+			show: {
+				resource: ['dangerousGoods'],
+				operation: ['adrLqCheck', 'adrExemptionConsignment'],
+			},
+		},
 		options: [
 			{
 				displayName: 'Item',
@@ -420,6 +440,8 @@ const dangerousGoodsFields: INodeProperties[] = [
 						name: 'unit',
 						type: 'options',
 						default: 'L',
+						description:
+							'Unit of measurement (used by adrLqCheck — adrExemptionConsignment ignores this field and computes by raw quantity)',
 						options: [
 							{ name: 'Litres (L)', value: 'L' },
 							{ name: 'Kilograms (kg)', value: 'kg' },

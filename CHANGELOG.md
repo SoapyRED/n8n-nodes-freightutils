@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0 — 2026-05-01
+
+### Added
+
+- **`adrExemptionConsignment`** — new operation under the Dangerous Goods resource that calculates the ADR 1.1.3.6 exemption against a multi-item consignment in one call. Wraps `POST /api/adr-calculator` with an `items` array (each item: `un_number`, `quantity`). Closes a parity gap surfaced during the ADR DG validation template build: previously, multi-item exemption calc required falling back to an HTTP Request node because `adrExemption` only exposed the single-substance GET form. Operation count for the resource: 3 → 4.
+
+The shared `Dangerous Goods Items` fixedCollection field now appears for both `adrLqCheck` and `adrExemptionConsignment`. `unit` is documented as adrLqCheck-only — the adr-calculator endpoint ignores it.
+
+### No breaking changes
+
+`adrExemption` (single-substance GET) is unchanged. Existing workflows continue to work. The new operation is additive.
+
+### Pairs with
+
+`templates/adr-dg-validation/workflow.json` (this repo) — the ADR DG validation sub-workflow that previously used an HTTP Request node for the consignment-level exemption call now uses `adrExemptionConsignment` natively. Requires v0.3.0+.
+
 ## 0.2.0 — 2026-04-25 (later — input-side casing + v0.2.0 priority bugs)
 
 ### BREAKING
