@@ -1,0 +1,293 @@
+{
+  "name": "ADR DG Validation (sub-workflow)",
+  "nodes": [
+    {
+      "parameters": {
+        "events": [
+          "execute_workflow"
+        ]
+      },
+      "id": "01-trigger",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate input shape — fail fast if required fields missing.\n// Input is a single object: { consignment: {...}, items: [{...}] }\n\nconst input = $input.first().json;\n\nif (!input || typeof input !== 'object') {\n  throw new Error('Input must be a JSON object with `consignment` and `items` keys');\n}\n\nconst { consignment, items } = input;\n\nif (!consignment || typeof consignment !== 'object') {\n  throw new Error('Missing required field: `consignment` (object)');\n}\n\nfor (const k of ['shipper', 'consignee', 'transport_mode', 'origin_country', 'destination_country']) {\n  if (!consignment[k]) {\n    throw new Error(`consignment.${k} is required`);\n  }\n}\n\nif (!Array.isArray(items) || items.length === 0) {\n  throw new Error('`items` must be a non-empty array');\n}\n\nconst REQUIRED_ITEM_FIELDS = ['un_number', 'quantity_per_package', 'quantity_unit', 'package_count', 'packaging_type'];\nconst VALID_UNITS = ['L', 'kg', 'mL', 'g'];\nconst VALID_PACKAGING = ['drums', 'IBC', 'jerricans', 'boxes', 'bags', 'other'];\n\nfor (let i = 0; i < items.length; i++) {\n  const it = items[i];\n  for (const k of REQUIRED_ITEM_FIELDS) {\n    if (it[k] === undefined || it[k] === null || it[k] === '') {\n      throw new Error(`items[${i}].${k} is required`);\n    }\n  }\n  if (!VALID_UNITS.includes(it.quantity_unit)) {\n    throw new Error(`items[${i}].quantity_unit must be one of ${VALID_UNITS.join(', ')}`);\n  }\n  if (!VALID_PACKAGING.includes(it.packaging_type)) {\n    throw new Error(`items[${i}].packaging_type must be one of ${VALID_PACKAGING.join(', ')}`);\n  }\n  if (typeof it.package_count !== 'number' || it.package_count <= 0 || !Number.isInteger(it.package_count)) {\n    throw new Error(`items[${i}].package_count must be a positive integer`);\n  }\n  if (typeof it.quantity_per_package !== 'number' || it.quantity_per_package <= 0) {\n    throw new Error(`items[${i}].quantity_per_package must be a positive number`);\n  }\n}\n\n// Compute total_quantity per item for downstream API calls.\nconst itemsWithTotal = items.map((it) => ({\n  ...it,\n  total_quantity: it.quantity_per_package * it.package_count,\n}));\n\nreturn [\n  {\n    json: {\n      consignment,\n      items: itemsWithTotal,\n    },\n  },\n];\n"
+      },
+      "id": "02-validate",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "include": "selectedOtherFields",
+        "fieldsToInclude": "consignment",
+        "options": {}
+      },
+      "id": "03-split",
+      "name": "Split Items",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.freightutils.com/api/adr",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "un",
+              "value": "={{ $json.un_number }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "04-adr-lookup",
+      "name": "ADR Lookup",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "freightutils-api-key",
+          "name": "FreightUtils API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Per-item: pick the variant_index 0 of the adr_lookup result and merge\n// it into the original item shape so downstream nodes have one flat record\n// per item.\n//\n// $('Split Items').item gives the upstream split item (which carries the\n// original `un_number`, `quantity_per_package`, etc.). $input.first().json\n// is the adr_lookup response { count, results, meta }.\n\nconst lookup = $input.first().json;\nconst originalItem = $('Split Items').item.json;\n\nconst variant = (lookup.results && lookup.results[0]) ? lookup.results[0] : null;\n\nif (!variant) {\n  // Unknown UN — emit a warning record so downstream Compose can flag it.\n  return [{\n    json: {\n      ...originalItem,\n      adr_data: null,\n      adr_lookup_error: `UN ${originalItem.un_number} not found in ADR 2025 dataset`,\n    },\n  }];\n}\n\nreturn [{\n  json: {\n    ...originalItem,\n    adr_data: {\n      un_number: variant.un_number,\n      proper_shipping_name: variant.proper_shipping_name,\n      class: variant.class,\n      classification_code: variant.classification_code,\n      packing_group: variant.packing_group,\n      labels: variant.labels,\n      special_provisions: variant.special_provisions,\n      limited_quantity: variant.limited_quantity,\n      excepted_quantity: variant.excepted_quantity,\n      transport_category: variant.transport_category,\n      tunnel_restriction_code: variant.tunnel_restriction_code,\n      hazard_identification_number: variant.hazard_identification_number,\n      variant_index: variant.variant_index,\n    },\n  },\n}];\n"
+      },
+      "id": "05-merge-lookup",
+      "name": "Merge ADR Data Into Item",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "*",
+              "renameField": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "06-aggregate",
+      "name": "Aggregate Items",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        1240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.freightutils.com/api/adr/lq-check",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"mode\": \"lq\",\n  \"items\": {{ JSON.stringify($json.data.map(it => ({un_number: it.un_number, quantity: it.total_quantity, unit: it.quantity_unit}))) }}\n}",
+        "options": {}
+      },
+      "id": "07-lq-check",
+      "name": "ADR LQ Check (Consignment)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "freightutils-api-key",
+          "name": "FreightUtils API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.freightutils.com/api/adr-calculator",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"items\": {{ JSON.stringify($('Aggregate Items').first().json.data.map(it => ({un_number: it.un_number, quantity: it.total_quantity}))) }}\n}",
+        "options": {}
+      },
+      "id": "08-exemption",
+      "name": "ADR 1.1.3.6 Exemption (Consignment)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "freightutils-api-key",
+          "name": "FreightUtils API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compose final output by joining: consignment header + per-item enriched\n// data + consignment-level lq + consignment-level exemption.\n\nconst aggregated = $('Aggregate Items').first().json.data; // enriched items\nconst lqResp = $('ADR LQ Check (Consignment)').first().json;\nconst exemptionResp = $input.first().json; // exemption is the immediate predecessor\nconst consignment = $('Validate Input').first().json.consignment;\n\n// Build per-item records\nconst lqByUn = new Map();\nfor (const li of (lqResp.items || [])) {\n  if (!lqByUn.has(li.un_number)) lqByUn.set(li.un_number, []);\n  lqByUn.get(li.un_number).push(li);\n}\n\n// Tunnel restriction ordering: '-' < A < B < C < D < E. Empty string treated as '-'.\nfunction tunnelRank(code) {\n  if (!code) return 0;\n  const c = code.replace(/[()]/g, '').toUpperCase();\n  if (c === '-' || c === '') return 0;\n  // Codes can be like 'D/E', 'B/D', take the most restrictive letter\n  const letters = c.split(/[\\/]/).map((s) => s.trim()).filter(Boolean);\n  let max = 0;\n  for (const l of letters) {\n    const r = l.charCodeAt(0) - 'A'.charCodeAt(0) + 1; // A=1 ... E=5\n    if (r > max) max = r;\n  }\n  return max;\n}\n\nconst itemsOut = aggregated.map((it, idx) => {\n  // pick the matching lq entry — if same UN appears multiple times, take the first lq match per item index in order\n  const matches = lqByUn.get(it.un_number) ?? [];\n  const lqEntry = matches.shift() ?? null;\n\n  const lqQualifies = lqEntry?.status === 'within_limit';\n  const eqCode = lqEntry?.eq_code ?? it.adr_data?.excepted_quantity ?? null;\n  // EQ qualification is conservative: if eq_code is E1-E5 (numeric > 0), the\n  // substance is *eligible* for EQ in principle. Per-package limit comparison\n  // against the EQ code's table is out of scope for v1 — we report the code\n  // and leave the per-package determination to the user.\n  const eqEligible = !!eqCode && /^E[1-5]$/.test(eqCode);\n\n  // Find the matching item in the exemption response by un_number\n  const exItem = (exemptionResp.items || []).find((e) => e.un_number === it.un_number) ?? null;\n  const tcPoints = exItem?.points ?? null;\n\n  // Per-item warnings\n  const reasons = [];\n  if (it.adr_lookup_error) reasons.push(it.adr_lookup_error);\n  if (lqEntry && lqEntry.status !== 'within_limit') reasons.push(`LQ ${lqEntry.status}: ${lqEntry.reason}`);\n\n  return {\n    input: {\n      un_number: it.un_number,\n      proper_shipping_name: it.proper_shipping_name,\n      class: it.class,\n      packing_group: it.packing_group,\n      quantity_per_package: it.quantity_per_package,\n      quantity_unit: it.quantity_unit,\n      package_count: it.package_count,\n      total_quantity: it.total_quantity,\n      packaging_type: it.packaging_type,\n      special_handling: it.special_handling,\n    },\n    adr_data: it.adr_data,\n    lq_eq_check: {\n      qualifies_for_lq: lqQualifies,\n      qualifies_for_eq: eqEligible,\n      max_lq: it.adr_data?.limited_quantity ?? null,\n      max_eq: eqCode,\n    },\n    transport_category_points: tcPoints,\n    _warnings: reasons,\n  };\n});\n\n// Aggregate fields\nconst itemsWithWarnings = itemsOut\n  .map((it, i) => (it._warnings.length ? { index: i, reasons: it._warnings } : null))\n  .filter(Boolean);\n\nconst itemsWithErrors = itemsOut\n  .map((it, i) => (!it.adr_data ? { index: i, reasons: ['UN not recognized'] } : null))\n  .filter(Boolean);\n\n// Strip _warnings from final items shape (kept it as scratch space)\nfor (const it of itemsOut) delete it._warnings;\n\n// Tunnel restrictions: collect unique codes ordered by restrictiveness (most first)\nconst tunnelCodesSet = new Map();\nfor (const it of itemsOut) {\n  const code = it.adr_data?.tunnel_restriction_code;\n  if (code && code !== '(-)') tunnelCodesSet.set(code, tunnelRank(code));\n}\nconst tunnelRestrictions = Array.from(tunnelCodesSet.entries())\n  .sort((a, b) => b[1] - a[1])\n  .map(([code]) => code);\n\n// Exemption status\nconst totalPoints = exemptionResp.total_points ?? 0;\nconst hasCategoryZero = exemptionResp.has_category_zero ?? false;\nconst exemptionStatus = hasCategoryZero\n  ? 'mixed_categories_check_required'\n  : exemptionResp.exempt ? 'exempt' : 'exceeds_threshold';\n\n// Driver ADR cert: required if exemption fails OR any item is TC 0 or 1\nconst driverCertRequired = !exemptionResp.exempt\n  || itemsOut.some((it) => ['0', '1'].includes(String(it.adr_data?.transport_category ?? '')));\n\nreturn [{\n  json: {\n    consignment,\n    validation: {\n      all_items_recognized: itemsWithErrors.length === 0,\n      items_validated: itemsOut.length,\n      items_with_warnings: itemsWithWarnings,\n      items_with_errors: itemsWithErrors,\n    },\n    items: itemsOut,\n    aggregate: {\n      total_transport_category_points: totalPoints,\n      exemption_113_6_status: exemptionStatus,\n      vehicle_marking_required: !exemptionResp.exempt,\n      tunnel_restrictions: tunnelRestrictions,\n      driver_adr_certificate_required: driverCertRequired,\n      notes: exemptionResp.warnings ?? [],\n    },\n  },\n}];\n"
+      },
+      "id": "09-compose",
+      "name": "Compose Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Split Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Items": {
+      "main": [
+        [
+          {
+            "node": "ADR Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ADR Lookup": {
+      "main": [
+        [
+          {
+            "node": "Merge ADR Data Into Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge ADR Data Into Item": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Items": {
+      "main": [
+        [
+          {
+            "node": "ADR LQ Check (Consignment)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ADR LQ Check (Consignment)": {
+      "main": [
+        [
+          {
+            "node": "ADR 1.1.3.6 Exemption (Consignment)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ADR 1.1.3.6 Exemption (Consignment)": {
+      "main": [
+        [
+          {
+            "node": "Compose Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "adr"
+    },
+    {
+      "name": "dangerous-goods"
+    },
+    {
+      "name": "compliance"
+    },
+    {
+      "name": "freight"
+    },
+    {
+      "name": "freightutils"
+    }
+  ],
+  "meta": {
+    "instanceId": "freightutils-template-adr-dg-validation"
+  }
+}

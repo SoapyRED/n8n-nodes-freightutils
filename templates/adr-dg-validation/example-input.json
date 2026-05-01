@@ -1,0 +1,29 @@
+{
+  "consignment": {
+    "booking_reference": "FU-DEMO-1001",
+    "shipper": "Acme Coatings Ltd, Manchester GB",
+    "consignee": "Bauchemie GmbH, Hamburg DE",
+    "transport_mode": "road",
+    "origin_country": "GB",
+    "destination_country": "DE",
+    "route_notes": "Dover-Calais ferry, Eurotunnel restricted (DG bookings limited)"
+  },
+  "items": [
+    {
+      "un_number": "1263",
+      "quantity_per_package": 25,
+      "quantity_unit": "L",
+      "package_count": 5,
+      "packaging_type": "drums",
+      "special_handling": "Keep upright, palletised on euro pallet"
+    },
+    {
+      "un_number": "3082",
+      "quantity_per_package": 1000,
+      "quantity_unit": "L",
+      "package_count": 1,
+      "packaging_type": "IBC",
+      "special_handling": "MARINE POLLUTANT — display fish & tree symbol"
+    }
+  ]
+}
