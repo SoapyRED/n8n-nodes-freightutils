@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.3.1 — 2026-05-01 (regression fix)
+
+### Fixed
+
+- **`consignment`, `adrLqCheck`, and `adrExemptionConsignment` consignment operations** now accept dynamic-array input via expression (e.g. `={{ $json.items }}` from an upstream node) — not just literal items typed into the `Add Item` UI. Caught by live E2E execution of `templates/adr-dg-validation/workflow.json` (audit at [docs/audits/2026-05-01-n8n-template-e2e.md](./docs/audits/2026-05-01-n8n-template-e2e.md)).
+
+### Root cause
+
+n8n's `NodeHelpers.getNodeParameters` (in `n8n-workflow`) iterates a `multipleValues=true` fixedCollection value with `for (const v of value)`. When the stored value is a string expression (instead of an array), the for-of iterates over the **string's characters** and emits one schema-default item per character. For an 18-char expression like `={{ $json.items }}`, the API received 18 items each filled with the FU node's parameter defaults (`{un_number:"1203", quantity:0.5, unit:"L"}`) — and `/api/adr/lq-check` rejected the call with HTTP 400 `"Maximum 20 items per check"` (or worse: a 20-item-or-fewer payload could silently succeed with garbage data).
+
+### Fix
+
+Each affected operation's routing now uses a `preSend` hook (`buildConsignmentItemsBody` in [nodes/FreightUtils/FreightUtils.node.ts](./nodes/FreightUtils/FreightUtils.node.ts)) that reads `node.parameters.items.itemValues` raw, evaluates it via `this.evaluateExpression()` if it's a string starting with `=`, and assigns the resulting array as `body.items`. Bypasses n8n's defaulting path entirely for the dynamic case; literal-array inputs (existing v0.3.0 users) continue to work via the unchanged path.
+
+### Affected users
+
+Anyone driving `consignment`, `adrLqCheck`, or `adrExemptionConsignment` with **dynamic** input (an expression on `Dangerous Goods Items` / `Items` fixedCollection that resolves to an array). Workflows where users typed items in literally via the `Add Item` button were unaffected.
+
+### No breaking changes
+
+API surface unchanged. Operation names, parameter names, response shapes — all identical to v0.3.0. Drop-in upgrade.
+
+### Pairs with
+
+`templates/adr-dg-validation/workflow.json` rework (Sprint B follow-up): the workflow can now use the native FU node for both consignment-level operations without falling back to HTTP Request nodes.
+
 ## 0.3.0 — 2026-05-01
 
 ### Added

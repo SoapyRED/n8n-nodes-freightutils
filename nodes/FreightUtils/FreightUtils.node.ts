@@ -3,7 +3,66 @@ import {
 	type INodeType,
 	type INodeTypeDescription,
 	type INodeProperties,
+	type IExecuteSingleFunctions,
+	type IHttpRequestOptions,
 } from 'n8n-workflow';
+
+// preSend hook: build the consignment body.items array from EITHER the
+// fixedCollection ('Add Item' UI entries) OR a JSON Expression input.
+//
+// Why two paths exist: n8n's NodeHelpers.getNodeParameters iterates a
+// fixedCollection `multipleValues=true` value with `for (const v of value)`.
+// When the stored value is a string expression like `={{ $json.items }}`
+// (instead of an array), the for-of iterates the string's CHARACTERS and
+// emits one schema-default item per char — the API receives N defaults
+// where N = expression-string length. By the time any preSend hook runs,
+// `node.parameters.items.itemValues` has already been mutated to that
+// defaults-array and the original expression is unrecoverable.
+//
+// Fix: a separate `itemsSource: 'json'` mode reads from a plain `string`
+// parameter (`itemsJson`). String params resolve expressions cleanly with
+// no fixedCollection iteration in the path. Default mode `list` keeps the
+// existing fixedCollection (correct for literal entries via UI).
+async function buildConsignmentItemsBody(
+	this: IExecuteSingleFunctions,
+	requestOptions: IHttpRequestOptions,
+	transform: (item: Record<string, unknown>) => Record<string, unknown> = (i) => i,
+): Promise<IHttpRequestOptions> {
+	const itemsSource = (this.getNodeParameter('itemsSource', 'list') as string) || 'list';
+	let items: unknown;
+	if (itemsSource === 'json') {
+		// Read itemsJson — string params resolve expressions correctly
+		// without the fixedCollection-iteration bug. Result can be:
+		//  - a resolved array (when the expression returns one)
+		//  - a JSON string the user typed literally
+		const raw = this.getNodeParameter('itemsJson', '') as unknown;
+		if (Array.isArray(raw)) {
+			items = raw;
+		} else if (typeof raw === 'string' && raw.trim().length > 0) {
+			try {
+				items = JSON.parse(raw);
+			} catch {
+				items = [];
+			}
+		} else {
+			items = [];
+		}
+	} else {
+		// Literal-list path: read the fixedCollection. Safe for literal
+		// 'Add Item' entries; broken if a user pastes an expression here
+		// (in which case they should switch Items Source to 'json').
+		const node = this.getNode();
+		const raw = (node.parameters as { items?: { itemValues?: unknown } })?.items?.itemValues;
+		items = Array.isArray(raw) ? raw : [];
+	}
+	if (!Array.isArray(items)) items = [];
+	const mapped = (items as Record<string, unknown>[]).map(transform);
+	if (typeof requestOptions.body !== 'object' || requestOptions.body === null) {
+		requestOptions.body = {};
+	}
+	(requestOptions.body as Record<string, unknown>).items = mapped;
+	return requestOptions;
+}
 
 // ─── Resource selector ───────────────────────────────────────────
 
@@ -95,10 +154,23 @@ const freightOpsOperations: INodeProperties = {
 					url: '/consignment',
 					body: {
 						mode: '={{$parameter.mode}}',
-						// /api/consignment input parser only accepts camelCase aliases on items.
-							// Map snake_case (n8n) -> camelCase (wire) until the website parser adds aliases.
-							items: '={{$parameter.items.itemValues.map(i => ({ length: i.length, width: i.width, height: i.height, quantity: i.quantity, grossWeight: i.gross_weight }))}}',
+						// items is set in preSend to handle both literal + dynamic-expression
+						// inputs (see buildConsignmentItemsBody comment above). The /api/consignment
+						// parser only accepts camelCase aliases, so we rename gross_weight in transform.
 					},
+				},
+				send: {
+					preSend: [
+						async function (this: IExecuteSingleFunctions, requestOptions: IHttpRequestOptions) {
+							return buildConsignmentItemsBody.call(this, requestOptions, (i) => ({
+								length: i.length,
+								width: i.width,
+								height: i.height,
+								quantity: i.quantity,
+								grossWeight: i.gross_weight,
+							}));
+						},
+					],
 				},
 			},
 		},
@@ -276,13 +348,49 @@ const consignmentFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['freightOps'], operation: ['consignment'] } },
 	},
 	{
+		displayName: 'Items Source',
+		name: 'itemsSource',
+		type: 'options',
+		default: 'list',
+		description:
+			'Where to read the items from. Use "Add Items in List" for static items typed in the UI; switch to "JSON Expression" if items come from an upstream node (e.g. ={{ $json.items }})',
+		displayOptions: { show: { resource: ['freightOps'], operation: ['consignment'] } },
+		options: [
+			{
+				name: 'Add Items in List',
+				value: 'list',
+				description: 'Use the Add Item button to define each item statically',
+			},
+			{
+				name: 'JSON Expression',
+				value: 'json',
+				description: 'Pass an array as a JSON expression (e.g. ={{ $json.items }})',
+			},
+		],
+	},
+	{
+		displayName: 'Items (JSON)',
+		name: 'itemsJson',
+		type: 'string',
+		typeOptions: { rows: 4 },
+		default: '',
+		placeholder: '={{ $json.items }}',
+		description:
+			'Array of items as JSON or an expression resolving to an array. Each item: { length, width, height, quantity, gross_weight }',
+		displayOptions: {
+			show: { resource: ['freightOps'], operation: ['consignment'], itemsSource: ['json'] },
+		},
+	},
+	{
 		displayName: 'Consignment Items',
 		name: 'items',
 		type: 'fixedCollection',
 		typeOptions: { multipleValues: true },
 		default: {},
 		placeholder: 'Add Item',
-		displayOptions: { show: { resource: ['freightOps'], operation: ['consignment'] } },
+		displayOptions: {
+			show: { resource: ['freightOps'], operation: ['consignment'], itemsSource: ['list'] },
+		},
 		options: [
 			{
 				displayName: 'Item',
@@ -352,8 +460,16 @@ const dangerousGoodsOperations: INodeProperties = {
 					url: '/adr/lq-check',
 					body: {
 						mode: '={{$parameter.mode}}',
-						items: '={{$parameter.items.itemValues}}',
+						// items is set in preSend (see buildConsignmentItemsBody) to handle both
+						// literal-array entries and dynamic expressions like ={{ $json.items }}.
 					},
+				},
+				send: {
+					preSend: [
+						async function (this: IExecuteSingleFunctions, requestOptions: IHttpRequestOptions) {
+							return buildConsignmentItemsBody.call(this, requestOptions);
+						},
+					],
 				},
 			},
 		},
@@ -374,8 +490,19 @@ const dangerousGoodsOperations: INodeProperties = {
 					method: 'POST',
 					url: '/adr-calculator',
 					body: {
-						items: '={{$parameter.items.itemValues.map(i => ({un_number: i.un_number, quantity: i.quantity}))}}',
+						// items is set in preSend (see buildConsignmentItemsBody). Drop unit; the
+						// /api/adr-calculator endpoint computes by raw quantity only.
 					},
+				},
+				send: {
+					preSend: [
+						async function (this: IExecuteSingleFunctions, requestOptions: IHttpRequestOptions) {
+							return buildConsignmentItemsBody.call(this, requestOptions, (i) => ({
+								un_number: i.un_number,
+								quantity: i.quantity,
+							}));
+						},
+					],
 				},
 			},
 		},
@@ -416,6 +543,49 @@ const dangerousGoodsFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['dangerousGoods'], operation: ['adrLqCheck'] } },
 	},
 	{
+		displayName: 'Items Source',
+		name: 'itemsSource',
+		type: 'options',
+		default: 'list',
+		description:
+			'Where to read the items from. Use "Add Items in List" for static items typed in the UI; switch to "JSON Expression" if items come from an upstream node (e.g. ={{ $json.items }})',
+		displayOptions: {
+			show: {
+				resource: ['dangerousGoods'],
+				operation: ['adrLqCheck', 'adrExemptionConsignment'],
+			},
+		},
+		options: [
+			{
+				name: 'Add Items in List',
+				value: 'list',
+				description: 'Use the Add Item button to define each item statically',
+			},
+			{
+				name: 'JSON Expression',
+				value: 'json',
+				description: 'Pass an array as a JSON expression (e.g. ={{ $json.items }})',
+			},
+		],
+	},
+	{
+		displayName: 'Items (JSON)',
+		name: 'itemsJson',
+		type: 'string',
+		typeOptions: { rows: 4 },
+		default: '',
+		placeholder: '={{ $json.items }}',
+		description:
+			'Array of items as JSON or an expression resolving to an array. Each item: { un_number, quantity, unit }. unit is required for adrLqCheck only',
+		displayOptions: {
+			show: {
+				resource: ['dangerousGoods'],
+				operation: ['adrLqCheck', 'adrExemptionConsignment'],
+				itemsSource: ['json'],
+			},
+		},
+	},
+	{
 		displayName: 'Dangerous Goods Items',
 		name: 'items',
 		type: 'fixedCollection',
@@ -426,6 +596,7 @@ const dangerousGoodsFields: INodeProperties[] = [
 			show: {
 				resource: ['dangerousGoods'],
 				operation: ['adrLqCheck', 'adrExemptionConsignment'],
+				itemsSource: ['list'],
 			},
 		},
 		options: [

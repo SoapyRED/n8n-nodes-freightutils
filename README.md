@@ -57,11 +57,20 @@ See <https://www.freightutils.com/pricing> for Pro access. Every response includ
 
 **Freight Ops** — CBM · LDM · Chargeable Weight · Pallet Fitting · Unit Converter · Consignment
 
-**Dangerous Goods** — ADR Lookup · ADR LQ/EQ Check · ADR Exemption Calculator
+**Dangerous Goods** — ADR Lookup · ADR LQ/EQ Check · ADR Exemption Calculator · ADR Exemption Calculator (Consignment)
 
 **Customs & Trade** — HS Code Lookup · Incoterms Lookup · UK Duty Calculator
 
 **Reference Data** — Airline · UN/LOCODE · ULD · Container · Vehicle · Health Ping · List Tools
+
+### Consignment-shape operations: literal or dynamic items
+
+`Consignment`, `ADR LQ/EQ Check`, and `ADR Exemption Calculator (Consignment)` all take a list of items. You can provide them either way:
+
+- **Literal**: click `Add Item` in the node UI for each item, fill the fields directly. Best for small fixed lists.
+- **Dynamic**: in `Items` → `Item` (or `Dangerous Goods Items`), click the Expression toggle and pass an upstream array — e.g. `={{ $json.items }}` from a Code or Set node that produces `[{un_number, quantity, unit}, ...]`. Best when the consignment shape comes from a webhook, database query, or another workflow.
+
+Both shapes hit the same API endpoint with the same wire format. (v0.3.0 had a regression where dynamic input was mishandled; fixed in v0.3.1 — see [CHANGELOG](./CHANGELOG.md).)
 
 ## Example A — Chargeable weight on an incoming air-freight booking
 
